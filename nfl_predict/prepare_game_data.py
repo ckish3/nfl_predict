@@ -1,8 +1,11 @@
 
+import re
 import pandas as pd
 import numpy as np
+import random
 
 from elosports.elo import Elo
+
 
 def download_data() -> pd.DataFrame:
     """
@@ -43,7 +46,7 @@ def get_all_teams(games_df: pd.DataFrame) -> np.ndarray:
     return games_df['home_team'].unique()
 
 
-def create_team_history(games_df: pd.DataFrame) -> pd.DataFrame:
+def create_team_histories(games_df: pd.DataFrame) -> pd.DataFrame:
     """
 
     Args:
@@ -54,6 +57,16 @@ def create_team_history(games_df: pd.DataFrame) -> pd.DataFrame:
             So this dataframe will be twice as long as the original because each game will 
             appear twice, once for the home team and once for the away team
     """
+
+    teams_dict = {}
+
+    for i in games_df.index:
+        row = games_df.loc[i]
+        teams_dict = add_game_to_team_dict(teams_dict, row, False)
+        teams_dict = add_game_to_team_dict(teams_dict, row, True)
+
+    return add_record(games_df, teams_dict)
+    
     
 def add_game_to_team_dict(team_dict, row, is_home_team):
     if is_home_team:
@@ -69,6 +82,7 @@ def add_game_to_team_dict(team_dict, row, is_home_team):
         
     if team not in team_dict:
         team_dict[team] = {
+                            'team': []
                             'season': [],
                             'week': [],
                             'opponent': [],
@@ -80,6 +94,7 @@ def add_game_to_team_dict(team_dict, row, is_home_team):
                             'draws_before': [],
                             
                             }
+    team_dict[team]['team'].append(team)
     team_dict[team]['season'].append(row['season'])
     team_dict[team]['week'].append(row['week'])
     team_dict[team]['opponent'].append(row[opponent_prefix + '_team'])
@@ -121,36 +136,32 @@ def add_game_to_team_dict(team_dict, row, is_home_team):
     
     return team_dict
 
-teams_dict = {}
-
-{
-    'opponent': [],
-    'location': [],
-    'qb': [],
-    'opponent_qb': [],
-    'points': [],
-    'opponent_points': [],
-    'result': [],
-    'wins_before': [],
-    'losses_before': [],
-    'draws_before': [],
-    
-}
-df =df[df['game_type'] == 'REG']
-for i in df.index:
-    row = df.loc[i]
-    teams_dict = add_game(teams_dict, row, False)
-    teams_dict = add_game(teams_dict, row, True)
 
 
-def add_record(games_df: pd.DataFrame) -> pd.DataFrame:
+def add_record(games_df: pd.DataFrame, teams_dict: dict) -> pd.DataFrame:
     """
 
     Args:
         games_df (pd.DataFrame): A dataframe of games data
+        teams_dict (dict): A dictionary of team data
 
     Returns:
         pd.DataFrame: A dataframe of games data with a record column
     """
-    
+    record_df = pd.DataFrame()
 
+    for team, items in teams_dict.items():
+        temp_df = pd.DataFrame(items)
+        record_df = pd.concat([record_df, temp_df])
+
+    record_df = record_df[['season', 'week', 'team', 'wins_before', 'losses_before', 'draws_before']]
+
+    games_df = games_df.merge(record_df, 
+                              left_on=['season', 'week', 'home_team'], 
+                              right_on=['season', 'week', 'team'])
+    games_df = games_df.merge(record_df, 
+                             left_on=['season', 'week', 'away_team'], 
+                             right_on=['season', 'week', 'team'],
+                             suffixes=('', '_away'))
+
+    return games_df
