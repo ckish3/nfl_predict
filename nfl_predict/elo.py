@@ -1,6 +1,7 @@
 
 from typing import Tuple
 import pandas as pd
+import numpy as np
 from elosports.elo import Elo
 
 
@@ -26,7 +27,7 @@ def elo_metric(df_val, elos_df, home_field_advantage):
     
     return df_val[['elo_test']].mean()['elo_test']
 
-def elo_rate(df_games, teams, k=20, home_field=100) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def elo_rate(df_games: pd.DataFrame, teams: np.ndarray, k: int=20, home_field: int=100) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Produces the Elo rating for each team in each weekin the games data
     Args:
@@ -105,3 +106,24 @@ def elo_rate(df_games, teams, k=20, home_field=100) -> Tuple[pd.DataFrame, pd.Da
 def evaluate_elo(df_training, df_val, teams, k, home_field_advantage):
     df_all_elos, elos_df = elo_rate(df_training, teams, k, home_field=home_field_advantage)
     return elo_metric(df_val, elos_df, home_field_advantage)
+
+
+def simulate_game_result(home_team: str, away_team: str, home_field_advantage: int, elos_df: pd.DataFrame) -> float:
+    """
+    Returns the probability that the home team will win the game against the away team given the home field advantage that
+    the home team has and ELO ratings given by the pandas dataframe elos_df.
+    
+    Args:
+        home_team (str): The home team in the game
+        away_team (str): The away team in the game
+        home_field_advantage (int): The home field advantage for the Elo rating
+        elos_df (pd.DataFrame): A dataframe of Elo ratings for just the latest season
+
+    Returns:
+        float: The probability that the home team will win the game
+    """
+
+    eloLeague = Elo(k=0) # a dummy k value
+
+    return eloLeague.expectResult(elos_df[elos_df['team'] == home_team]['elo_rating'].values[0] + home_field_advantage,
+                                  elos_df[elos_df['team'] == away_team]['elo_rating'].values[0])

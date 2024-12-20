@@ -6,6 +6,10 @@ from typing import Tuple
 
 def split_data(data_df: pd.DataFrame, training_week_cutoff: int=12, proportion_val: float=0.5) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
+    Splits the data into training, validation, and test dataframes. The training set is all  the games
+    in week 1 through training_week_cutoff in all seasons. The validation and test sets are a random sample 
+    of the games in all seasons after training_week_cutoff. 
+
     Args:
         data_df (pd.DataFrame): A dataframe of games data
         training_week_cutoff (int, optional): The week to stop training on. Defaults to 12.
@@ -98,7 +102,7 @@ def evaluate_home_advantage(df_test: pd.DataFrame) -> float:
             return 0
             
     df_test['home_test'] = df_test.apply(location_test2, axis=1) 
-    return df_test['home_advantage_test'].mean()
+    return df_test['home_test'].mean()
 
 def evaluate_record(df_test: pd.DataFrame) -> float:
     """

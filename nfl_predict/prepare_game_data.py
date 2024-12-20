@@ -82,7 +82,7 @@ def add_game_to_team_dict(team_dict, row, is_home_team):
         
     if team not in team_dict:
         team_dict[team] = {
-                            'team': []
+                            'team': [],
                             'season': [],
                             'week': [],
                             'opponent': [],
