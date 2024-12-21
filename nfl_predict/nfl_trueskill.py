@@ -1,5 +1,6 @@
 
 
+from operator import ge
 from typing import Tuple
 import pandas as pd
 import numpy as np
@@ -23,17 +24,24 @@ def get_latest_ratings(df_all_trueskills: pd.DataFrame) -> dict:
     Returns:
         dict: the latest trueskill ratings for just the latest season
     """
+
+    if df_all_trueskills is None:
+        raise Exception('Ratings have not been calculated yet')
+
     latest_ratings = {}
 
     latest_season = max(df_all_trueskills['season'].values)
     season_df = df_all_trueskills[df_all_trueskills['season'] == latest_season]
 
+    # You loop through each team in the latest season instead of just getting the maximum week
+    # overall ecause teams may have a bye week in that latet week and therefore not appear there.
+    # This gets the latest week for each team, which could be different weeks because of byes
     for team, team_df in season_df.groupby('team'):
         latest_week = max(team_df['week'].values)
         latest_df = team_df[team_df['week'] == latest_week]
 
         latest_ratings[team] = {'mu': latest_df['trueskill_rating'], 
-                                'sigma': latest_df['trueskill_sigma']}
+                                'sigma': latest_df['trueskill_sigma'],}
 
     return latest_ratings
 
@@ -48,21 +56,23 @@ def trueskill_test_score(row, home_field_advantage):
     return 0
 
 
-def trueskill_metric(df_val, elos_df, home_field_advantage):
-    df_val = df_val.merge(elos_df, 
+def trueskill_metric(df_val, trueskills_df, home_field_advantage):
+    df_val = df_val.merge(trueskills_df, 
                             left_on=['home_team', 'season'],
                             right_on=['team', 'season'])
-    df_val = df_val.merge(elos_df, 
+    df_val = df_val.merge(trueskills_df, 
                             left_on=['away_team', 'season'],
                             right_on=['team', 'season'],
                             suffixes=('', '_away'))
-
     df_val['trueskill_test'] = df_val.apply(trueskill_test_score, home_field_advantage=home_field_advantage, axis=1)
     
     return df_val[['trueskill_test']].mean()['trueskill_test']
 
 
-def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advantage: int=100, beta: float=4.17, tau: float=0.083) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advantage: int=100, beta: float=4.17, tau: float=0.083) -> None:
+
+    global DF_ALL_TRUESKILLS
+
     team_final_trueskills = {
             'season': [],
             'team': [],
@@ -77,9 +87,7 @@ def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advanta
             'trueskill_rating': [],
             'trueskill_sigma': []
         }
-    
-    eloLeague = trueskill.Elo(k=0)
-    
+
     for season, df_season in df_games.groupby('season'):
         
         df_season = df_season.sort_values('week', ascending=True)
@@ -142,29 +150,31 @@ def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advanta
             all_trueskills['team'].append(loser)
             all_trueskills['trueskill_rating'].append(season_trueskill_ratings[loser].mu)
             all_trueskills['trueskill_sigma'].append(season_trueskill_ratings[loser].sigma)
-                        
-                                
+
         for team in teams:
             team_final_trueskills['team'].append(team)
             team_final_trueskills['season'].append(season)
             team_final_trueskills['trueskill_rating'].append(season_trueskill_ratings[team].mu)
             team_final_trueskills['trueskill_sigma'].append(season_trueskill_ratings[team].sigma)
+            
 
-    df_all_trueskills = pd.DataFrame(all_trueskills)
+    DF_ALL_TRUESKILLS = pd.DataFrame(all_trueskills)
 
     trueskills_df = pd.DataFrame(team_final_trueskills)
 
-    return df_all_trueskills, trueskills_df
+    return trueskills_df
+
 
 def evaluate_trueskill(df_training, df_val, teams, beta, home_field_advantage, tau):
-    df_all_trueskills, trueskills_df = trueskill_rate(df_training, teams, home_field_advantage=home_field_advantage, beta=beta, tau=tau)
+    global DF_ALL_TRUESKILLS
+    trueskills_df = trueskill_rate(df_training, teams, home_field_advantage=home_field_advantage, beta=beta, tau=tau)
     return trueskill_metric(df_val, trueskills_df, home_field_advantage)
 
 @tool
 def simulate_game_result(home_team: str, away_team: str, home_field_advantage: int) -> float:
     """
     Returns the probability that the home team will win the game against the away team given the home field advantage that
-    the home team has and ELO ratings given by the pandas dataframe elos_df.
+    the home team has and trueskill ratings.
     
     Args:
         home_team: (str) The home team in the game
