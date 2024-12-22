@@ -1,4 +1,9 @@
 
+"""
+This module contains functions for evaluating various methods to predict the
+result of NFL games
+
+"""
 import math
 import pandas as pd
 import random
