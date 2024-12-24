@@ -129,3 +129,49 @@ def test_evaluate_home_advantage_with_neutral():
     # Test the evaluate_home_advantage function
     accuracy = evaluate_home_advantage(df_test)
     assert accuracy == 0.5  # Only two valid home games should be counted
+
+def test_evaluate_record():
+    # Create a sample DataFrame for testing
+    data = {
+        'wins_before': [10, 5, 8],
+        'losses_before': [2, 5, 2],
+        'draws_before': [1, 0, 0],
+        'wins_before_away': [3, 2, 1],
+        'losses_before_away': [1, 3, 1],
+        'draws_before_away': [0, 0, 0],
+        'location': ['Home', 'Away', 'Home'],
+        'result': [1, -1, 1]
+    }
+    df_test = pd.DataFrame(data)
+
+    # Test the evaluate_record function
+    accuracy = evaluate_record(df_test)
+    assert accuracy == 0.6666666666666666  # Two out of three predictions should match
+
+def test_evaluate_record_edge_case():
+    # Create an empty DataFrame
+    df_empty = pd.DataFrame(columns=['wins_before', 'losses_before', 'draws_before', 
+                                     'wins_before_away', 'losses_before_away', 
+                                     'draws_before_away', 'location', 'result'])
+
+    # Test the evaluate_record function with an empty DataFrame
+    accuracy = evaluate_record(df_empty)
+    assert accuracy == 0.0  # No games should result in 0 accuracy
+
+def test_evaluate_record_with_zero_games():
+    # Create a DataFrame with zero games
+    data = {
+        'wins_before': [0],
+        'losses_before': [0],
+        'draws_before': [0],
+        'wins_before_away': [0],
+        'losses_before_away': [0],
+        'draws_before_away': [0],
+        'location': ['Home'],
+        'result': [1]
+    }
+    df_test = pd.DataFrame(data)
+
+    # Test the evaluate_record function
+    accuracy = evaluate_record(df_test)
+    assert accuracy == 1.0  # Should predict correctly as there are no games to compare
