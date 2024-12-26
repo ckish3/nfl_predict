@@ -1,10 +1,17 @@
+"""
+This module contains functions for computing the trueskill ratings
+of NFL teams, and then using those ratings to predict game results
+"""
 
 
 from operator import ge
 from typing import Tuple
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import scipy.stats as stats
+import math
+import json
 import trueskill
 from transformers import tool
 
@@ -40,8 +47,8 @@ def get_latest_ratings(df_all_trueskills: pd.DataFrame) -> dict:
         latest_week = max(team_df['week'].values)
         latest_df = team_df[team_df['week'] == latest_week]
 
-        latest_ratings[team] = {'mu': latest_df['trueskill_rating'], 
-                                'sigma': latest_df['trueskill_sigma'],}
+        latest_ratings[team] = {'mu': latest_df['trueskill_rating'].values[0], 
+                                'sigma': latest_df['trueskill_sigma'].values[0],}
 
     return latest_ratings
 
@@ -171,7 +178,7 @@ def evaluate_trueskill(df_training, df_val, teams, beta, home_field_advantage, t
     return trueskill_metric(df_val, trueskills_df, home_field_advantage)
 
 @tool
-def simulate_game_result(home_team: str, away_team: str, home_field_advantage: int) -> float:
+def predict_game_result(home_team: str, away_team: str, home_field_advantage: int, beta: float) -> float:
     """
     Returns the probability that the home team will win the game against the away team given the home field advantage that
     the home team has and trueskill ratings.
@@ -181,13 +188,43 @@ def simulate_game_result(home_team: str, away_team: str, home_field_advantage: i
         away_team: (str) The away team in the game
         home_field_advantage: (int) The home field advantage for the Trueskill rating
         trueskill_df: (pd.DataFrame) A dataframe of trueskill ratings for just the latest season
+        beta: (float) The beta parameter for the Trueskill rating
 
     Returns:
         float: The probability that the home team will win the game
     """
+
     latest_ratings = get_latest_ratings(DF_ALL_TRUESKILLS)
     mu_combined = latest_ratings[home_team]['mu'] + home_field_advantage - latest_ratings[away_team]['mu']
 
-    sigma = sqrt(latest_ratings[home_team]['sigma']**2 + latest_ratings[away_team]['sigma']**2)
+    sigma = math.sqrt(latest_ratings[home_team]['sigma']**2 + latest_ratings[away_team]['sigma']**2)
+    denom = math.sqrt(2 * (beta * beta) + sigma)
+    ts = trueskill.global_env()
+    return ts.cdf(mu_combined / denom)
 
-    return 1 - stats.norm.cdf(0, loc=mu_combined, scale=sigma)
+
+@tool
+def plot_team_ratings(team: str, season: int) -> str:
+    """
+    Plots the ratings of a tem throughout the season given by season. 
+    
+    Args:
+        team: (str) The team whose ratings to plot
+        season: (int) The season of ratings to plot
+
+    Returns:
+        str: a list of the team's ratings converted into a string
+    """
+    global DF_ALL_TRUESKILLS
+    season_df = DF_ALL_TRUESKILLS[(DF_ALL_TRUESKILLS['team'] == team) & (DF_ALL_TRUESKILLS['season'] == season)]
+    season_df = season_df.sort_values('week', ascending=True)
+    x = season_df['week'].values
+    y = season_df['trueskill_rating'].values
+    plt.plot(x, y)
+
+    plt.xlabel('Week')
+    plt.ylabel('Trueskill Rating')
+    plt.title(f'Trueskill Ratings for {team} in Season {season}')
+    plt.show()
+
+    return json.dumps(y.tolist())
