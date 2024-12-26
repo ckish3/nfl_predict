@@ -10,3 +10,8 @@ This is an agentic system, where you can prompt an LLM to do one of 3 things:
 
 
 Note: The team rating method is a quick & dirty solution. The primary goal was to create a decent solution quickly and without needing a lot of data (which is mostly not freely available). In other words, it's not intended to be the best solution.
+
+TODO:
+- Handle edge cases
+- Evaluate LLM portions of the system
+- Complete documentation

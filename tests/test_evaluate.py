@@ -98,7 +98,7 @@ def test_evaluate_moneyline_with_nulls():
     assert accuracy == 0.5  # Only one valid prediction should match
 
 
-    def test_evaluate_home_advantage():
+def test_evaluate_home_advantage():
     # Create a sample DataFrame for testing
     data = {
         'location': ['Home', 'Home', 'Neutral', 'Away'],
@@ -139,7 +139,7 @@ def test_evaluate_record():
         'wins_before_away': [3, 2, 1],
         'losses_before_away': [1, 3, 1],
         'draws_before_away': [0, 0, 0],
-        'location': ['Home', 'Away', 'Home'],
+        'location': ['Home', 'Neutral', 'Home'],
         'result': [1, -1, 1]
     }
     df_test = pd.DataFrame(data)
@@ -175,3 +175,5 @@ def test_evaluate_record_with_zero_games():
     # Test the evaluate_record function
     accuracy = evaluate_record(df_test)
     assert accuracy == 1.0  # Should predict correctly as there are no games to compare
+
+
