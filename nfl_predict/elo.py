@@ -1,3 +1,7 @@
+"""
+This module contains functions for computing the Elo ratings
+of NFL teams, and then using those ratings to predict game results
+"""
 
 from typing import Tuple, List
 import pandas as pd
