@@ -1,3 +1,6 @@
+"""
+This module contains functions for downloading and computing weekly team stats
+"""
 
 import pandas as pd
 import datetime
@@ -13,6 +16,12 @@ WEEKLY_TEAM_STATS = None # Ideally this would not be a global variable,
 
 
 def download_weekly_player_stats() -> pd.DataFrame:
+    """
+    Downloads weekly player stats from nfl_data_py
+
+    Returns:
+        pd.DataFrame: A dataframe of weekly player stats
+    """
     
     current_year = datetime.datetime.now().year
     years = [x for x in range(1999, current_year + 1)]
@@ -23,6 +32,10 @@ def download_weekly_player_stats() -> pd.DataFrame:
 
 
 def calculate_weekly_team_stats() -> None:
+    """
+    Computes weekly team stats from weekly player stats
+    """
+    
     global WEEKLY_TEAM_STATS
     columns = ['completions', 'attempts', 'passing_yards', 'passing_tds', 'interceptions',
                'sacks', 'sack_yards', 'sack_fumbles', 'sack_fumbles_lost', 'passing_air_yards',
