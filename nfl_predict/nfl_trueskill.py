@@ -53,7 +53,16 @@ def get_latest_ratings(df_all_trueskills: pd.DataFrame) -> dict:
     return latest_ratings
 
 
-def trueskill_test_score(row, home_field_advantage):
+def trueskill_test_score(row: pd.Series, home_field_advantage: float) -> int:
+    """
+    Returns whether the game result (win/loss) was predicted correctly by the Trueskill ratings.
+    Args:
+        row (pd.Series): A row of games data
+        home_field_advantage (float): The home field advantage for the Trueskill rating
+
+    Returns:
+        int: 1 if the rating correctly predicted the winner and 0 if not
+    """
     if row['trueskill_rating'] + home_field_advantage > row['trueskill_rating_away'] and row['result'] > 0:
         return 1
 
@@ -63,7 +72,19 @@ def trueskill_test_score(row, home_field_advantage):
     return 0
 
 
-def trueskill_metric(df_val, trueskills_df, home_field_advantage):
+def trueskill_metric(df_val: pd.DataFrame, trueskills_df: pd.DataFrame, home_field_advantage: float) -> float:
+    """
+    Returns the accuracy of the Trueskill rating at predicting wins of games in df_val.
+
+    Args:
+        df_val (pd.DataFrame): A dataframe of games data
+        trueskills_df (pd.DataFrame): A dataframe of the final Trueskill ratings (from the training weeks)
+            for each season
+        home_field_advantage (float): The home field advantage for the Trueskill rating
+
+    Returns:
+        float: The accuracy of the Trueskill rating at predicting wins of games in df_val
+    """
     df_val = df_val.merge(trueskills_df, 
                             left_on=['home_team', 'season'],
                             right_on=['team', 'season'])
@@ -76,8 +97,21 @@ def trueskill_metric(df_val, trueskills_df, home_field_advantage):
     return df_val[['trueskill_test']].mean()['trueskill_test']
 
 
-def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advantage: int=100, beta: float=4.17, tau: float=0.083) -> None:
+def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advantage: int=100, beta: float=4.17, tau: float=0.083) -> pd.DataFrame:
+    """
+    Computes the Trueskill rating for each team based on the games in df_games
 
+    Args:
+        df_games (pd.DataFrame): A dataframe of games data
+        teams (np.ndarray): A numpy array of all unique teams (as strings) that are in the games data
+        home_field_advantage (int, optional): The home field advantage for the Trueskill rating. Defaults to 100.
+        beta (float, optional): The beta parameter for the Trueskill rating. Defaults to 4.17.
+        tau (float, optional): The tau parameter for the Trueskill rating. Defaults to 0.083.
+
+    Returns:
+        pd.DataFrame: A dataframe of the final trueskill ratings from the training set games
+            for each team in each season
+    """
     global DF_ALL_TRUESKILLS
 
     team_final_trueskills = {
@@ -172,7 +206,22 @@ def trueskill_rate(df_games: pd.DataFrame, teams: np.ndarray, home_field_advanta
     return trueskills_df
 
 
-def evaluate_trueskill(df_training, df_val, teams, beta, home_field_advantage, tau):
+def evaluate_trueskill(df_training: pd.DataFrame, df_val: pd.DataFrame, teams: List[str], beta: float, home_field_advantage: float, tau: float) -> float:
+    """
+    Evaluatesthe accuracy of the Trueskill method at predicting wins of games in df_val by building ratings from the games 
+    in df_training
+
+    Args:
+        df_training (pd.DataFrame): A dataframe of games data to use for training
+        df_val (pd.DataFrame): A dataframe of games data to use for validation
+        teams (List[str]): A list of all unique teams (as strings) that are in the games data
+        beta (float): The beta parameter for the Trueskill rating
+        home_field_advantage (float): The home field advantage for the Trueskill rating
+        tau (float): The tau parameter for the Trueskill rating
+
+    Returns:
+        float: The accuracy of the Trueskill rating at predicting wins of games in df_val
+    """
     global DF_ALL_TRUESKILLS
     trueskills_df = trueskill_rate(df_training, teams, home_field_advantage=home_field_advantage, beta=beta, tau=tau)
     return trueskill_metric(df_val, trueskills_df, home_field_advantage)

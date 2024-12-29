@@ -17,7 +17,7 @@ def elo_test_score(row: pd.Series, home_field_advantage: float) -> int:
         home_field_advantage (float): The home field advantage for the Elo rating
 
     Returns:
-        int: 1 if the home team won the game, 0 if the away team won the game
+        int: 1 if the rating correctly predicted the winner and 0 if not
     """
     if row['elo_rating'] + home_field_advantage > row['elo_rating_away'] and row['result'] > 0:
         return 1
@@ -33,7 +33,8 @@ def elo_metric(df_val: pd.DataFrame, elos_df: pd.DataFrame, home_field_advantage
 
     Args:
         df_val (pd.DataFrame): A dataframe of games data
-        elos_df (pd.DataFrame): A dataframe of Elo ratings for just the latest season
+        elos_df (pd.DataFrame): A dataframe of the final Elo ratings (from the training weeks)
+            for each season
         home_field_advantage (float): The home field advantage for the Elo rating
 
     Returns:
