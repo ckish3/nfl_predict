@@ -1,4 +1,6 @@
-
+"""
+This module contains functions for downloading and formatting NFL game data
+"""
 import re
 import pandas as pd
 import numpy as np

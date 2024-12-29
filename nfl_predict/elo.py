@@ -1,11 +1,24 @@
+"""
+This module contains functions for computing the Elo ratings
+of NFL teams, and then using those ratings to predict game results
+"""
 
-from typing import Tuple
+from typing import Tuple, List
 import pandas as pd
 import numpy as np
 from elosports.elo import Elo
 
 
-def elo_test_score(row, home_field_advantage):
+def elo_test_score(row: pd.Series, home_field_advantage: float) -> int:
+    """
+    Returns whether the game result (win/loss) was predicted correctly by the Elo ratings.
+    Args:
+        row (pd.Series): A row of games data
+        home_field_advantage (float): The home field advantage for the Elo rating
+
+    Returns:
+        int: 1 if the rating correctly predicted the winner and 0 if not
+    """
     if row['elo_rating'] + home_field_advantage > row['elo_rating_away'] and row['result'] > 0:
         return 1
 
@@ -14,7 +27,19 @@ def elo_test_score(row, home_field_advantage):
 
     return 0
 
-def elo_metric(df_val, elos_df, home_field_advantage):
+def elo_metric(df_val: pd.DataFrame, elos_df: pd.DataFrame, home_field_advantage: float) -> float:
+    """
+    Returns the accuracy of the Elo rating at predicting wins of games in df_val.
+
+    Args:
+        df_val (pd.DataFrame): A dataframe of games data
+        elos_df (pd.DataFrame): A dataframe of the final Elo ratings (from the training weeks)
+            for each season
+        home_field_advantage (float): The home field advantage for the Elo rating
+
+    Returns:
+        float: The accuracy of the Elo rating at predicting wins of games in df_val
+    """
     df_val = df_val.merge(elos_df, 
                             left_on=['home_team', 'season'],
                             right_on=['team', 'season'])
@@ -103,7 +128,21 @@ def elo_rate(df_games: pd.DataFrame, teams: np.ndarray, k: int=20, home_field: i
     return df_all_elos, elos_df
 
 
-def evaluate_elo(df_training, df_val, teams, k, home_field_advantage):
+def evaluate_elo(df_training: pd.DataFrame, df_val: pd.DataFrame, teams: List[str], k: int, home_field_advantage: int) -> float:
+    """
+    Evaluatesthe accuracy of the Elo method at predicting wins of games in df_val by building ratings from the games 
+    in df_training
+
+    Args:
+        df_training (pd.DataFrame): A dataframe of games data to use for training
+        df_val (pd.DataFrame): A dataframe of games data to use for validation
+        teams (List[str]): A list of all unique teams (as strings) that are in the games data
+        k (int): The k factor for the Elo rating
+        home_field_advantage (int): The home field advantage for the Elo rating
+
+    Returns:
+        float: The accuracy of the Elo rating at predicting wins of games in df_val
+    """
     df_all_elos, elos_df = elo_rate(df_training, teams, k, home_field=home_field_advantage)
     return elo_metric(df_val, elos_df, home_field_advantage)
 
