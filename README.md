@@ -15,3 +15,4 @@ TODO:
 - Handle edge cases
 - Evaluate LLM portions of the system
 - Complete documentation
+- Logging
